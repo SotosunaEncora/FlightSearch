@@ -66,9 +66,15 @@ const FilterBox: React.FC<FilterBoxProps> = ({
             );
         case 'select':
             return (
-                <FormControl variant="outlined" fullWidth={fullWidth}>
-                    <InputLabel>{label}</InputLabel>
-                    <Select value={value} onChange={onChange} label={label}>
+                <FormControl fullWidth={fullWidth}>
+                    <InputLabel id={`${label}-label`}>{label}</InputLabel>
+                    <Select
+                        labelId={`${label}-label`}
+                        id={label}
+                        value={value}
+                        label={label}
+                        onChange={onChange}
+                    >
                         {options.map((option) => (
                             <MenuItem key={option} value={option}>
                                 {option}
