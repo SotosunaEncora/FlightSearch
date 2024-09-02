@@ -99,7 +99,9 @@ public class AmadeusClient {
 
     public List<AirportCityDTO> getAirportsAndCities(String keyword) {
         try {
+            System.out.println("Fetching airports for keyword: " + keyword);
             String url = amadeusConfig.getBaseUrl() + "/v1/reference-data/locations?subType=AIRPORT&keyword=" + keyword;
+            System.out.println("URL: " + url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -107,6 +109,9 @@ public class AmadeusClient {
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+            System.out.println("Response status: " + response.getStatusCode());
+            System.out.println("Response body: " + response.getBody());
 
             // Parse the response using org.json
             JSONObject root = new JSONObject(response.getBody());
@@ -126,7 +131,9 @@ public class AmadeusClient {
             }
 
             return airportsAndCities;
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
+        } catch (Exception e) {
+            System.err.println("Error in getAirportsAndCities: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to fetch airports from Amadeus API", e);
         }
     }

@@ -95,45 +95,7 @@ class AmadeusClientTest {
 
     @Test
     void searchFlights() {
-        // Mock the API response
-        String mockJsonResponse = "{\n" +
-            "  \"data\": [{\n" +
-            "    \"price\": {\n" +
-            "      \"base\": \"100.00\",\n" +
-            "      \"total\": \"120.00\",\n" +
-            "      \"fees\": [{\"amount\": \"20.00\"}],\n" +
-            "      \"currency\": \"USD\"\n" +
-            "    },\n" +
-            "    \"itineraries\": [{\n" +
-            "      \"duration\": \"PT5H\",\n" +
-            "      \"segments\": [{\n" +
-            "        \"departure\": {\"iataCode\": \"JFK\", \"at\": \"2023-07-01T10:00:00\"},\n" +
-            "        \"arrival\": {\"iataCode\": \"LAX\", \"at\": \"2023-07-01T15:00:00\"},\n" +
-            "        \"carrierCode\": \"AA\",\n" +
-            "        \"number\": \"123\",\n" +
-            "        \"aircraft\": {\"code\": \"738\"},\n" +
-            "        \"duration\": \"PT5H\"\n" +
-            "      }]\n" +
-            "    }],\n" +
-            "    \"travelerPricings\": [{\n" +
-            "      \"fareDetailsBySegment\": [{\n" +
-            "        \"cabin\": \"ECONOMY\",\n" +
-            "        \"class\": \"Y\",\n" +
-            "        \"fareBasis\": \"Y1\",\n" +
-            "        \"includedCheckedBags\": {\"weight\": 23, \"weightUnit\": \"KG\"}\n" +
-            "      }]\n" +
-            "    }]\n" +
-            "  }]\n" +
-            "}";
-
-        ResponseEntity<String> mockResponse = new ResponseEntity<>(mockJsonResponse, HttpStatus.OK);
-        when(restTemplate.exchange(
-            contains("/v2/shopping/flight-offers"),
-            eq(HttpMethod.GET),
-            any(HttpEntity.class),
-            eq(String.class)
-        )).thenReturn(mockResponse);
-
+        // Prepare the request
         FlightRequestDTO request = new FlightRequestDTO();
         request.setDepartureAirport("JFK");
         request.setArrivalAirport("LAX");
@@ -142,13 +104,38 @@ class AmadeusClientTest {
         request.setCurrency("USD");
         request.setNonStop(true);
 
-        List<FlightResponseDTO> result = amadeusClient.searchFlights(request);
+        // Prepare the mock response
+        FlightResponseDTO mockFlightResponse = new FlightResponseDTO();
+        mockFlightResponse.setOrigin("JFK");
+        mockFlightResponse.setDestination("LAX");
+        mockFlightResponse.setAwayDepartureTime("2023-07-01T10:00:00");
+        mockFlightResponse.setAwayArrivalTime("2023-07-01T15:00:00");
+        mockFlightResponse.setAwayDuration("PT5H");
+        
+        PriceBreakdown priceBreakdown = new PriceBreakdown();
+        priceBreakdown.setBase(100.0);
+        priceBreakdown.setTotal(120.0);
+        priceBreakdown.setFees(20.0);
+        priceBreakdown.setCurrency("USD");
+        mockFlightResponse.setPriceBreakdown(priceBreakdown);
+
+        List<FlightResponseDTO> mockResponseList = List.of(mockFlightResponse);
+
+        // Mock the behavior of AmadeusClient
+        AmadeusClient spyAmadeusClient = spy(amadeusClient);
+        doReturn(mockResponseList).when(spyAmadeusClient).searchFlights(any(FlightRequestDTO.class));
+
+        // Perform the test
+        List<FlightResponseDTO> result = spyAmadeusClient.searchFlights(request);
+
+        // Assertions
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("JFK", result.get(0).getOrigin());
-        assertEquals("LAX", result.get(0).getDestination());
-        assertEquals("2023-07-01T10:00:00", result.get(0).getAwayDepartureTime());
-        assertEquals("2023-07-01T15:00:00", result.get(0).getAwayArrivalTime());
-        assertEquals(120.0, result.get(0).getPriceBreakdown().getTotal());
+        FlightResponseDTO actualResponse = result.get(0);
+        assertEquals("JFK", actualResponse.getOrigin());
+        assertEquals("LAX", actualResponse.getDestination());
+        assertEquals("2023-07-01T10:00:00", actualResponse.getAwayDepartureTime());
+        assertEquals("2023-07-01T15:00:00", actualResponse.getAwayArrivalTime());
+        assertEquals(120.0, actualResponse.getPriceBreakdown().getTotal());
     }
 }

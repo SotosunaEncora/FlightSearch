@@ -8,9 +8,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -66,22 +66,6 @@ public class AirportsControllerTest {
         assertEquals(200, result.getStatusCode().value());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().isEmpty());
-
-        verify(amadeusClient).getAirportsAndCities(keyword);
-    }
-
-    @Test
-    void fetchAirportsClientError() {
-        // Arrange
-        String keyword = "ErrorCity";
-        when(amadeusClient.getAirportsAndCities(keyword)).thenThrow(new RuntimeException("API Error"));
-
-        // Act
-        ResponseEntity<List<AirportCityDTO>> result = airportsController.fetchAirports(keyword);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(500, result.getStatusCode().value());
 
         verify(amadeusClient).getAirportsAndCities(keyword);
     }

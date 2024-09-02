@@ -17,11 +17,14 @@ public class TestController {
         this.amadeusClient = amadeusClient;
     }
 
+    @GetMapping
+    public String test() {
+        return "Backend is working";
+    }
+
     @GetMapping("/connectionTest")
     public String testConnection() {
         System.out.println("Controller Called!!!");
-        // Make a request to the Amadeus API
-        String response = amadeusClient.testConnection();
-        return response;
+        return amadeusClient.testConnection();
     }
 }
