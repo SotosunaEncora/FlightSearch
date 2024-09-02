@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Box, Button, Modal, Typography, Checkbox, FormControlLabel } from '@mui/material';
+import { Container, Box, Button, Modal, Typography, Checkbox, FormControlLabel, Alert } from '@mui/material';
 import axios from 'axios';
 import FilterBox from './FilterBox';
 
@@ -24,6 +24,8 @@ const HomePage: React.FC = () => {
     const [errorModalOpen, setErrorModalOpen] = useState<boolean>(false);
     const [departureKeyword, setDepartureKeyword] = useState<string>('a');
     const [arrivalKeyword, setArrivalKeyword] = useState<string>('a');
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [validationModalOpen, setValidationModalOpen] = useState<boolean>(false);
 
     // Backup airport options
     const backupAirportOptions: AirportOption[] = [
@@ -37,7 +39,6 @@ const HomePage: React.FC = () => {
     ];
 
     useEffect(() => {
-        // Fetch departure airport options from the back-end
         const fetchDepartureOptions = async (keyword: string) => {
             try {
                 const response = await axios.get<AirportOption[]>(`http://localhost:8080/airports/${keyword}`);
@@ -45,6 +46,7 @@ const HomePage: React.FC = () => {
             } catch (error) {
                 console.error('Error fetching departure airport options:', error);
                 setDepartureOptions(backupAirportOptions);
+                setErrorMessage('Error fetching departure airport options. Using backup options.');
                 setErrorModalOpen(true);
             }
         };
@@ -55,7 +57,6 @@ const HomePage: React.FC = () => {
     }, [departureKeyword]);
 
     useEffect(() => {
-        // Fetch arrival airport options from the back-end
         const fetchArrivalOptions = async (keyword: string) => {
             try {
                 const response = await axios.get<AirportOption[]>(`http://localhost:8080/airports/${keyword}`);
@@ -63,6 +64,7 @@ const HomePage: React.FC = () => {
             } catch (error) {
                 console.error('Error fetching arrival airport options:', error);
                 setArrivalOptions(backupAirportOptions);
+                setErrorMessage('Error fetching arrival airport options. Using backup options.');
                 setErrorModalOpen(true);
             }
         };
@@ -73,6 +75,13 @@ const HomePage: React.FC = () => {
     }, [arrivalKeyword]);
 
     const handleSearch = async () => {
+        // Validate essential inputs
+        if (!departureAirport || !arrivalAirport || !departureDate) {
+            setErrorMessage('Please fill in all required fields: Departure Airport, Arrival Airport, and Departure Date.');
+            setValidationModalOpen(true);
+            return;
+        }
+
         // Prepare search parameters
         const searchParams = {
             departureAirport: departureAirport?.code,
@@ -100,25 +109,21 @@ const HomePage: React.FC = () => {
                 }
             });
         } catch (error) {
-            console.error('Error searching flights:', error);
+            if (axios.isAxiosError(error)) {
+                setErrorMessage(error.response?.data?.message || 'An error occurred while searching for flights.');
+            } else {
+                setErrorMessage('An unexpected error occurred while searching for flights.');
+            }
             setErrorModalOpen(true);
-            navigate('/results', {
-                state: {
-                    flights: [],
-                    departureAirport,
-                    arrivalAirport,
-                    departureDate,
-                    returnDate,
-                    adults,
-                    currency,
-                    nonStop,
-                }
-            });
         }
     };
 
     const handleCloseErrorModal = () => {
         setErrorModalOpen(false);
+    };
+
+    const handleCloseValidationModal = () => {
+        setValidationModalOpen(false);
     };
 
     return (
@@ -222,10 +227,39 @@ const HomePage: React.FC = () => {
                     <Typography id="error-modal-title" variant="h6" component="h2">
                         Error
                     </Typography>
-                    <Typography id="error-modal-description" sx={{ mt: 2 }}>
-                        An error occurred while fetching data. Please try again later.
-                    </Typography>
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                        {errorMessage}
+                    </Alert>
                     <Button onClick={handleCloseErrorModal} sx={{ mt: 2 }}>
+                        Close
+                    </Button>
+                </Box>
+            </Modal>
+
+            <Modal
+                open={validationModalOpen}
+                onClose={handleCloseValidationModal}
+                aria-labelledby="validation-modal-title"
+                aria-describedby="validation-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 400,
+                    bgcolor: 'background.paper',
+                    border: '2px solid #000',
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                    <Typography id="validation-modal-title" variant="h6" component="h2">
+                        Missing Information
+                    </Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        {errorMessage}
+                    </Alert>
+                    <Button onClick={handleCloseValidationModal} sx={{ mt: 2 }}>
                         Close
                     </Button>
                 </Box>
