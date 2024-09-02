@@ -1,0 +1,65 @@
+# General files
+.DS_Store
+*.log
+*.tmp
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React (Frontend)
+FE/flightsearch-frontend/build/
+FE/flightsearch-frontend/dist/
+FE/flightsearch-frontend/node_modules/
+FE/flightsearch-frontend/.cache/
+FE/flightsearch-frontend/.env.local
+FE/flightsearch-frontend/.env.development.local
+FE/flightsearch-frontend/.env.test.local
+FE/flightsearch-frontend/.env.production.local
+
+# React Native
+FE/flightsearch-frontend/ios/
+FE/flightsearch-frontend/android/
+FE/flightsearch-frontend/expo/
+FE/flightsearch-frontend/*.db
+
+# Spring Boot (Backend)
+BE/flightsearch-backend/.gradle/
+BE/flightsearch-backend/build/
+BE/flightsearch-backend/out/
+BE/flightsearch-backend/libs/
+BE/flightsearch-backend/.idea/
+BE/flightsearch-backend/.project
+BE/flightsearch-backend/.classpath
+BE/flightsearch-backend/.settings/
+BE/flightsearch-backend/.springBeans
+BE/flightsearch-backend/.factorypath
+
+# Gradle
+BE/flightsearch-backend/gradle/
+BE/flightsearch-backend/gradle-app/
+
+# Sensitive files
+BE/flightsearch-backend/.env
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.stackdump
+
+# Mac system files
+._*
+
+# Windows system files
+*.bat
+*.cmd
+*.exe
+*.dll
+BE/flightsearch-backend/logs

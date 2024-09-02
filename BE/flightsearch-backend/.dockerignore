@@ -1,0 +1,12 @@
+# Ignore build artifacts
+build
+
+# Ignore source control files
+.git
+.gitignore
+.dockerignore
+
+# Ignore IDE/editor files
+.idea
+.vscode
+*.iml

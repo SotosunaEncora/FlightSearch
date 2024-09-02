@@ -1,0 +1,14 @@
+services:
+  frontend:
+    build:
+      context:
+        ./FE/flightsearch-frontend
+    ports:
+      - "3000:80"
+
+  backend:
+    build:
+      context:
+        ./BE/flightsearch-backend
+    ports:
+      - "8080:8080"
