@@ -21,6 +21,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @Component
@@ -152,6 +153,8 @@ public class AmadeusClient {
             if (request.getReturnDate() != null) {
                 url += "&returnDate=" + request.getReturnDate();
             }
+            System.out.println("Trying to get flights!! ");
+            System.out.println("url:" + url);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -159,11 +162,14 @@ public class AmadeusClient {
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            System.out.println("Response: " + response);
 
             // Parse the response using org.json
             JSONObject root = new JSONObject(response.getBody());
             JSONArray data = root.getJSONArray("data");
 
+            System.out.println("Total flights found: " + data.length());
             List<FlightResponseDTO> flights = new ArrayList<>();
 
             for (int i = 0; i < data.length(); i++) {
@@ -186,9 +192,13 @@ public class AmadeusClient {
                 List<Segment> departureSegments = new ArrayList<>();
                 List<Segment> returnSegments = new ArrayList<>();
 
+                System.out.println("Itineraries count: " + itineraries.length());
+
                 for (int j = 0; j < itineraries.length(); j++) {
                     JSONObject itinerary = itineraries.getJSONObject(j);
                     JSONArray segments = itinerary.getJSONArray("segments");
+
+                    System.out.println("Segments in itinerary " + j + ": " + segments.length());
 
                     for (int k = 0; k < segments.length(); k++) {
                         JSONObject segment = segments.getJSONObject(k);
@@ -197,7 +207,11 @@ public class AmadeusClient {
                         seg.setDestination(segment.getJSONObject("arrival").getString("iataCode"));
                         seg.setDepartureTime(segment.getJSONObject("departure").getString("at"));
                         seg.setArrivalTime(segment.getJSONObject("arrival").getString("at"));
-                        seg.setAirline(segment.getString("carrierCode"));
+                        String carrierCode = segment.getString("carrierCode");
+                        seg.setAirline(carrierCode);
+                        if (k == 0) {
+                            flightResponse.setAirline(carrierCode);
+                        }
                         seg.setFlightNumber(segment.getString("number"));
                         seg.setAircraft(segment.getJSONObject("aircraft").getString("code"));
                         seg.setDuration(segment.getString("duration"));
@@ -218,6 +232,9 @@ public class AmadeusClient {
                     JSONObject travelerPricing = travelerPricings.getJSONObject(l);
                     JSONArray fareDetailsBySegment = travelerPricing.getJSONArray("fareDetailsBySegment");
 
+                    System.out.println("Fare details by segment count: " + fareDetailsBySegment.length());
+
+
                     // Associate fare details with segments in order
                     for (int m = 0; m < fareDetailsBySegment.length(); m++) {
                         JSONObject fareDetail = fareDetailsBySegment.getJSONObject(m);
@@ -227,8 +244,38 @@ public class AmadeusClient {
                         fareDetails.setFareClass(fareDetail.getString("class"));
                         fareDetails.setFareBasis(fareDetail.getString("fareBasis"));
                         List<String> checkedBags = new ArrayList<>();
-                        checkedBags.add(fareDetail.getJSONObject("includedCheckedBags").getString("weight") + " " + fareDetail.getJSONObject("includedCheckedBags").getString("weightUnit"));
-                        fareDetails.setCheckedBags(checkedBags);
+                        if (fareDetail.has("includedCheckedBags") && !fareDetail.isNull("includedCheckedBags")) {
+                            JSONObject includedCheckedBags = fareDetail.getJSONObject("includedCheckedBags");
+                        
+                            // Iterate through the keys of includedCheckedBags
+                            Iterator<String> keys = includedCheckedBags.keys();
+                        
+                            while (keys.hasNext()) {
+                                String key = keys.next();
+                        
+                                // Check if the value is not null
+                                if (!includedCheckedBags.isNull(key)) {
+                                    Object value = includedCheckedBags.get(key);
+                        
+                                    // Check the type of the value
+                                    if (value instanceof String) {
+                                        checkedBags.add(key + ": " + (String) value);
+                                    } else if (value instanceof Integer) {
+                                        checkedBags.add(key + ": " + Integer.toString((Integer) value));
+                                    } else if (value instanceof Double) {
+                                        checkedBags.add(key + ": " + Double.toString((Double) value));
+                                    } else {
+                                        checkedBags.add(key + ": " + value.toString()); // fallback for other types
+                                    }
+                                }
+                            }
+                        
+                            fareDetails.setCheckedBags(checkedBags);
+                        }
+                        
+                        System.out.println("Departure segments size: " + departureSegments.size());
+                    System.out.println("Return segments size: " + returnSegments.size());
+                        
 
                         // Associate fare details with the corresponding segment
                         if (m < departureSegments.size()) {
@@ -243,11 +290,15 @@ public class AmadeusClient {
                 flightResponse.setDestination(departureSegments.get(departureSegments.size() - 1).getDestination());
                 flightResponse.setAwayDepartureTime(departureSegments.get(0).getDepartureTime());
                 flightResponse.setAwayArrivalTime(departureSegments.get(departureSegments.size() - 1).getArrivalTime());
-                flightResponse.setReturnDepartureTime(returnSegments.get(0).getDepartureTime());
-                flightResponse.setReturnArrivalTime(returnSegments.get(returnSegments.size() - 1).getArrivalTime());
+    
+                if (!returnSegments.isEmpty()) {
+                    flightResponse.setReturnDepartureTime(returnSegments.get(0).getDepartureTime());
+                    flightResponse.setReturnArrivalTime(returnSegments.get(returnSegments.size() - 1).getArrivalTime());
+                }
+    
                 flightResponse.setDepartureSegments(departureSegments);
                 flightResponse.setReturnSegments(returnSegments);
-
+    
                 flights.add(flightResponse);
             }
 
