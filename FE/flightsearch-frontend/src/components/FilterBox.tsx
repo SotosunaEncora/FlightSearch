@@ -50,7 +50,8 @@ const FilterBox: React.FC<FilterBoxProps> = ({
                         label={label}
                         value={value ? dayjs(value) : null}
                         onChange={(newValue) => onChange(null, newValue ? dayjs(newValue).format('YYYY-MM-DD') : '')}
-                        slotProps={{ textField: { fullWidth } }}
+                        format="YYYY-MM-DD"
+                        slotProps={{ textField: { fullWidth }}}
                     />
                 </LocalizationProvider>
             );

@@ -26,7 +26,7 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, departureCity, departur
                 <CardContent sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ flex: 3 }}>
                         <Typography variant="h6">
-                            {departureCity} ({departureAirport}) - {arrivalCity} ({arrivalAirport})
+                            {departureCity} ({flight.origin}) - {arrivalCity} ({flight.destination})
                         </Typography>
                         <Typography variant="body1">
                             {flight.awayDepartureTime} - {flight.awayArrivalTime}
@@ -56,7 +56,7 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, departureCity, departur
                     <CardContent sx={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
                         <Box sx={{ flex: 3 }}>
                             <Typography variant="h6">
-                                {arrivalCity} ({arrivalAirport}) - {departureCity} ({departureAirport})
+                                {arrivalCity} ({flight.destination}) - {departureCity} ({flight.origin})
                             </Typography>
                             <Typography variant="body1">
                                 {flight.returnSegments[0].departureTime} - {flight.returnSegments[flight.returnSegments.length - 1].arrivalTime}
