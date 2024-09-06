@@ -49,6 +49,9 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, departureCity, departur
                         <Typography variant="body1">
                             Duration: {formatDurationTime(flight.awayDuration)}
                         </Typography>
+                        <Typography variant="body1">
+                            {flight.departureSegments.length > 1 ? `(${flight.departureSegments.length-1} stops)` : ''}
+                        </Typography>
                     </Box>
                     <Box sx={{ flex: 1, textAlign: 'right' }}>
                         <Typography variant="h6">
@@ -78,6 +81,9 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, departureCity, departur
                         <Box sx={{ flex: 1, textAlign: 'center' }}>
                         <Typography variant="body1">
                             Duration: {formatDurationTime(flight.returnDuration)}
+                        </Typography>
+                        <Typography variant="body1">
+                            {flight.returnSegments.length > 1 ? `(${flight.returnSegments.length-1} stops)` : ''}
                         </Typography>
                         </Box>
                         <Box sx={{ flex: 1, textAlign: 'right' }}>
