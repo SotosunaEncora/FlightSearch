@@ -74,7 +74,7 @@ const FilterBox: React.FC<FilterBoxProps> = ({
                         id={label}
                         value={value}
                         label={label}
-                        onChange={onChange}
+                        onChange={(e) => onChange(e, e.target.value)}
                     >
                         {options.map((option) => (
                             <MenuItem key={option} value={option}>
