@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Box, Button, Modal, Typography, Checkbox, FormControlLabel, Alert } from '@mui/material';
+import { Container, Box, Button, Modal, Typography, Checkbox, FormControlLabel, Alert, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import FilterBox from './FilterBox';
 
@@ -26,17 +26,9 @@ const HomePage: React.FC = () => {
     const [arrivalKeyword, setArrivalKeyword] = useState<string>('a');
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [validationModalOpen, setValidationModalOpen] = useState<boolean>(false);
-
-    // Backup airport options
-    const backupAirportOptions: AirportOption[] = [
-        { code: 'JFK', cityName: 'New York', name: 'John F. Kennedy International Airport' },
-        { code: 'LAX', cityName: 'Los Angeles', name: 'Los Angeles International Airport' },
-        { code: 'ORD', cityName: 'Chicago', name: 'O\'Hare International Airport' },
-        { code: 'LHR', cityName: 'London', name: 'Heathrow Airport' },
-        { code: 'CDG', cityName: 'Paris', name: 'Charles de Gaulle Airport' },
-        { code: 'NRT', cityName: 'Tokyo', name: 'Narita International Airport' },
-        { code: 'SYD', cityName: 'Sydney', name: 'Sydney Airport' },
-    ];
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [dateValidationModalOpen, setDateValidationModalOpen] = useState<boolean>(false);
+    const [dateValidationMessage, setDateValidationMessage] = useState<string>('');
 
     useEffect(() => {
         const fetchDepartureOptions = async (keyword: string) => {
@@ -45,8 +37,7 @@ const HomePage: React.FC = () => {
                 setDepartureOptions(response.data);
             } catch (error) {
                 console.error('Error fetching departure airport options:', error);
-                setDepartureOptions(backupAirportOptions);
-                setErrorMessage('Error fetching departure airport options. Using backup options.');
+                setErrorMessage('Error fetching departure airport options.');
                 setErrorModalOpen(true);
             }
         };
@@ -63,8 +54,7 @@ const HomePage: React.FC = () => {
                 setArrivalOptions(response.data);
             } catch (error) {
                 console.error('Error fetching arrival airport options:', error);
-                setArrivalOptions(backupAirportOptions);
-                setErrorMessage('Error fetching arrival airport options. Using backup options.');
+                setErrorMessage('Error fetching arrival airport options.');
                 setErrorModalOpen(true);
             }
         };
@@ -73,6 +63,65 @@ const HomePage: React.FC = () => {
             fetchArrivalOptions(arrivalKeyword);
         }
     }, [arrivalKeyword]);
+
+    const validateDates = (newDepartureDate: string | null, newReturnDate: string | null) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of the day for accurate comparison
+
+        if (newDepartureDate) {
+            const departureDateTime = new Date(newDepartureDate);
+            departureDateTime.setHours(0, 0, 0, 0); // Normalize to start of day
+            if (departureDateTime < today) {
+                setDateValidationMessage("Departure date cannot be earlier than today.");
+                setDateValidationModalOpen(true);
+                setDepartureDate(null);
+                return false;
+            }
+        }
+
+        if (newReturnDate) {
+            const returnDateTime = new Date(newReturnDate);
+            returnDateTime.setHours(0, 0, 0, 0); // Normalize to start of day
+            if (returnDateTime < today) {
+                setDateValidationMessage("Return date cannot be earlier than today.");
+                setDateValidationModalOpen(true);
+                setReturnDate(null);
+                return false;
+            }
+        }
+
+        if (newDepartureDate && newReturnDate) {
+            const departureDateTime = new Date(newDepartureDate);
+            const returnDateTime = new Date(newReturnDate);
+            departureDateTime.setHours(0, 0, 0, 0); // Normalize to start of day
+            returnDateTime.setHours(0, 0, 0, 0); // Normalize to start of day
+            
+            if (returnDateTime < departureDateTime) {
+                setDateValidationMessage("Return date cannot be earlier than departure date.");
+                setDateValidationModalOpen(true);
+                setReturnDate(null);
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    const handleDepartureDateChange = (event: React.ChangeEvent<{}>, newValue: string | null) => {
+        if (validateDates(newValue, returnDate)) {
+            setDepartureDate(newValue);
+        }
+    };
+
+    const handleReturnDateChange = (event: React.ChangeEvent<{}>, newValue: string | null) => {
+        if (validateDates(departureDate, newValue)) {
+            setReturnDate(newValue);
+        }
+    };
+
+    const handleCloseDateValidationModal = () => {
+        setDateValidationModalOpen(false);
+    };
 
     const handleSearch = async () => {
         // Validate essential inputs
@@ -93,9 +142,11 @@ const HomePage: React.FC = () => {
             nonStop,
         };
         console.log('searchParams: ', searchParams);
+        setIsLoading(true);
         try {
             const response = await axios.post('http://localhost:8080/flights/search', searchParams);
             console.log('Flight search results:', response.data);
+            setIsLoading(false);
             navigate('/results', {
                 state: {
                     flights: response.data,
@@ -109,6 +160,7 @@ const HomePage: React.FC = () => {
                 }
             });
         } catch (error) {
+            setIsLoading(false);
             if (axios.isAxiosError(error)) {
                 setErrorMessage(error.response?.data?.message || 'An error occurred while searching for flights.');
             } else {
@@ -169,14 +221,14 @@ const HomePage: React.FC = () => {
                         label="Departure Date"
                         type="date"
                         value={departureDate}
-                        onChange={(event, newValue) => setDepartureDate(newValue)}
+                        onChange={handleDepartureDateChange}
                         fullWidth
                     />
                     <FilterBox
                         label="Return Date"
                         type="date"
                         value={returnDate}
-                        onChange={(event, newValue) => setReturnDate(newValue)}
+                        onChange={handleReturnDateChange}
                         fullWidth
                     />
                     <FilterBox
@@ -260,6 +312,60 @@ const HomePage: React.FC = () => {
                         {errorMessage}
                     </Alert>
                     <Button onClick={handleCloseValidationModal} sx={{ mt: 2 }}>
+                        Close
+                    </Button>
+                </Box>
+            </Modal>
+
+            {/* Loading Modal */}
+            <Modal
+                open={isLoading}
+                aria-labelledby="loading-modal-title"
+                aria-describedby="loading-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    bgcolor: 'background.paper',
+                    boxShadow: 24,
+                    p: 4,
+                    borderRadius: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                }}>
+                    <CircularProgress />
+                    <Typography sx={{ mt: 2 }}>Searching for flights...</Typography>
+                </Box>
+            </Modal>
+
+            {/* Date Validation Modal */}
+            <Modal
+                open={dateValidationModalOpen}
+                onClose={handleCloseDateValidationModal}
+                aria-labelledby="date-validation-modal-title"
+                aria-describedby="date-validation-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 400,
+                    bgcolor: 'background.paper',
+                    border: '2px solid #000',
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                    <Typography id="date-validation-modal-title" variant="h6" component="h2">
+                        Invalid Date Selection
+                    </Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        {dateValidationMessage}
+                    </Alert>
+                    <Button onClick={handleCloseDateValidationModal} sx={{ mt: 2 }}>
                         Close
                     </Button>
                 </Box>
