@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 @Component
-public class AmadeusClient {
+public class AmadeusClient implements FlightClient {
 
     private final RestTemplate restTemplate;
     private final AmadeusConfig amadeusConfig;
@@ -75,9 +75,14 @@ public class AmadeusClient {
 
     // Ensure the token is valid (and refresh it if necessary)
     private void ensureValidToken() {
-        if (accessToken == null || System.currentTimeMillis() >= tokenExpiryTime) {
+        if (accessToken == null || System.currentTimeMillis() >= tokenExpiryTime - 60000) { // Refresh 1 minute before expiry
             obtainAccessToken();
         }
+    }
+
+    // Call this method before making any API request
+    private void refreshTokenIfNeeded() {
+        ensureValidToken();
     }
 
     public String testConnection() {
@@ -141,6 +146,7 @@ public class AmadeusClient {
 
     public List<FlightResponseDTO> searchFlights(FlightRequestDTO request) {
         try {
+            refreshTokenIfNeeded();
             String url = String.format("%s/v2/shopping/flight-offers?originLocationCode=%s&destinationLocationCode=%s&departureDate=%s&adults=%d&currencyCode=%s&nonStop=%b",
                     amadeusConfig.getBaseUrl(),
                     request.getDepartureAirport(),
@@ -167,7 +173,21 @@ public class AmadeusClient {
 
             // Parse the response using org.json
             JSONObject root = new JSONObject(response.getBody());
+            
+            // Check for API errors
+            if (root.has("errors")) {
+                JSONArray errors = root.getJSONArray("errors");
+                StringBuilder errorMessage = new StringBuilder("API Error(s): ");
+                for (int i = 0; i < errors.length(); i++) {
+                    JSONObject error = errors.getJSONObject(i);
+                    errorMessage.append(error.getString("detail")).append("; ");
+                }
+                throw new RuntimeException(errorMessage.toString());
+            }
+
             JSONArray data = root.getJSONArray("data");
+            JSONObject dictionaries = root.getJSONObject("dictionaries");
+            JSONObject carriers = dictionaries.getJSONObject("carriers");
 
             System.out.println("Total flights found: " + data.length());
             List<FlightResponseDTO> flights = new ArrayList<>();
@@ -208,9 +228,10 @@ public class AmadeusClient {
                         seg.setDepartureTime(segment.getJSONObject("departure").getString("at"));
                         seg.setArrivalTime(segment.getJSONObject("arrival").getString("at"));
                         String carrierCode = segment.getString("carrierCode");
-                        seg.setAirline(carrierCode);
+                        String airlineName = carriers.optString(carrierCode, carrierCode); // Get full name or use code as fallback
+                        seg.setAirline(airlineName);
                         if (k == 0) {
-                            flightResponse.setAirline(carrierCode);
+                            flightResponse.setAirline(airlineName);
                         }
                         seg.setFlightNumber(segment.getString("number"));
                         seg.setAircraft(segment.getJSONObject("aircraft").getString("code"));
@@ -303,8 +324,11 @@ public class AmadeusClient {
             }
 
             return flights;
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            throw new RuntimeException("Failed to fetch flights from Amadeus API", e);
+        } catch (Exception e) {
+            // Log the error
+            e.printStackTrace();
+            // Throw a custom exception or return an empty list
+            throw new RuntimeException("Error searching flights: " + e.getMessage());
         }
     }
 }

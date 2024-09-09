@@ -51,12 +51,12 @@ public class Segment {
         this.airline = airline;
     }
 
-    public String getFlighNumber() {
+    public String getFlightNumber() {
         return flightNumber;
     }
 
-    public void setFlightNumber(String flighNumber) {
-        this.flightNumber = flighNumber;
+    public void setFlightNumber(String flightNumber) {
+        this.flightNumber = flightNumber;
     }
 
     public String getAircraft() {
